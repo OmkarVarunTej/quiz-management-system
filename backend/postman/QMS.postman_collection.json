@@ -1,0 +1,90 @@
+{
+  "info": {
+    "name": "Cloud-Based Quiz Management System",
+    "description": "Full API collection for the QMS backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
+    { "key": "facultyToken", "value": "" },
+    { "key": "studentToken", "value": "" },
+    { "key": "courseId", "value": "" },
+    { "key": "questionId", "value": "" },
+    { "key": "quizId", "value": "" },
+    { "key": "studentQuizId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        { "name": "Register Faculty", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{baseUrl}}/auth/faculty/register", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Dr. Faculty Demo\",\n  \"email\": \"faculty@example.com\",\n  \"password\": \"Password123!\"\n}" } } },
+        { "name": "Login Faculty", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{baseUrl}}/auth/faculty/login", "body": { "mode": "raw", "raw": "{\n  \"email\": \"faculty@example.com\",\n  \"password\": \"Password123!\"\n}" } } },
+        { "name": "Register Student", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{baseUrl}}/auth/student/register", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Student Demo\",\n  \"regNo\": \"REG2026001\",\n  \"email\": \"student@example.com\",\n  \"password\": \"Password123!\"\n}" } } },
+        { "name": "Login Student", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{baseUrl}}/auth/student/login", "body": { "mode": "raw", "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"Password123!\"\n}" } } },
+        { "name": "Get Me", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/auth/me" } }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        { "name": "Create Course", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cloud Computing\",\n  \"code\": \"CS101\"\n}" } } },
+        { "name": "List Courses", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses" } },
+        { "name": "Get Course By Id", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses/{{courseId}}" } },
+        { "name": "Update Course", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses/{{courseId}}", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cloud Computing Updated\"\n}" } } },
+        { "name": "Delete Course", "request": { "method": "DELETE", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses/{{courseId}}" } },
+        { "name": "Enroll Student", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses/{{courseId}}/students", "body": { "mode": "raw", "raw": "{\n  \"regNo\": \"REG2026001\"\n}" } } },
+        { "name": "List Enrolled Students", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/courses/{{courseId}}/students" } }
+      ]
+    },
+    {
+      "name": "Question Bank",
+      "item": [
+        { "name": "Create Question", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/questions", "body": { "mode": "raw", "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"text\": \"Which of these is an IaaS provider?\",\n  \"marks\": 2,\n  \"options\": [\n    { \"text\": \"AWS EC2\", \"isCorrect\": true },\n    { \"text\": \"Google Docs\", \"isCorrect\": false },\n    { \"text\": \"Notion\", \"isCorrect\": false }\n  ]\n}" } } },
+        { "name": "List Questions", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/questions?courseId={{courseId}}" } },
+        { "name": "Get Question By Id", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/questions/{{questionId}}" } },
+        { "name": "Update Question", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/questions/{{questionId}}", "body": { "mode": "raw", "raw": "{\n  \"marks\": 3\n}" } } },
+        { "name": "Delete Question", "request": { "method": "DELETE", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/questions/{{questionId}}" } },
+        { "name": "Upload Question Image", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/questions/{{questionId}}/image", "body": { "mode": "formdata", "formdata": [ { "key": "image", "type": "file", "src": "" } ] } } }
+      ]
+    },
+    {
+      "name": "Quizzes",
+      "item": [
+        { "name": "Create Quiz", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes", "body": { "mode": "raw", "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"title\": \"Cloud Basics Quiz\",\n  \"durationMinutes\": 15\n}" } } },
+        { "name": "List Quizzes", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes" } },
+        { "name": "Get Quiz By Id", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}" } },
+        { "name": "Update Quiz", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Cloud Basics Quiz v2\"\n}" } } },
+        { "name": "Delete Quiz", "request": { "method": "DELETE", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}" } },
+        { "name": "Assign Questions", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}/questions", "body": { "mode": "raw", "raw": "{\n  \"questionIds\": [\"{{questionId}}\"]\n}" } } },
+        { "name": "Remove Question From Quiz", "request": { "method": "DELETE", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}/questions/{{questionId}}" } },
+        { "name": "Publish Quiz", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}/publish" } },
+        { "name": "Close Quiz", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/quizzes/{{quizId}}/close" } }
+      ]
+    },
+    {
+      "name": "Student Quiz Taking",
+      "item": [
+        { "name": "List Available Quizzes", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/student-quizzes/available" } },
+        { "name": "Start Quiz", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/student-quizzes/{{quizId}}/start" } },
+        { "name": "Get Session", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/student-quizzes/{{quizId}}/session" } },
+        { "name": "Save Answer (Auto-Save)", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/student-quizzes/{{quizId}}/answer", "body": { "mode": "raw", "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"selectedOptionId\": null\n}" } } },
+        { "name": "Submit Quiz", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/student-quizzes/{{quizId}}/submit", "body": { "mode": "raw", "raw": "{\n  \"autoSubmitted\": false\n}" } } }
+      ]
+    },
+    {
+      "name": "Results",
+      "item": [
+        { "name": "Publish Results (Faculty)", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/results/quiz/{{quizId}}/publish" } },
+        { "name": "List Results For Quiz (Faculty)", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{facultyToken}}"}], "url": "{{baseUrl}}/results/quiz/{{quizId}}?sort=desc" } },
+        { "name": "My Results (Student)", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/results/my" } },
+        { "name": "Result Detail (Student)", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{studentToken}}"}], "url": "{{baseUrl}}/results/{{studentQuizId}}" } }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        { "name": "Health Check", "request": { "method": "GET", "url": "{{baseUrl}}/health" } }
+      ]
+    }
+  ]
+}

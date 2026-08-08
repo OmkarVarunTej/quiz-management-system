@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Faculty {
+  id        String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name      String
+  email     String     @unique
+  password  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  courses   Course[]
+  questions Question[]
+
+  @@index([email])
+  @@map("faculties")
+}
+
+model Student {
+  id             String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name           String
+  regNo          String        @unique
+  email          String        @unique
+  password       String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  results        Result[]
+  studentQuizzes StudentQuiz[]
+  courses        Course[]      @relation("CourseStudents")
+
+  @@index([regNo])
+  @@index([email])
+  @@map("students")
+}
+
+model Course {
+  id        String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name      String
+  code      String     @unique
+  facultyId String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  faculty   Faculty    @relation(fields: [facultyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions Question[]
+  quizzes   Quiz[]
+  students  Student[]  @relation("CourseStudents")
+
+  @@index([facultyId])
+  @@map("courses")
+}
+
+model Quiz {
+  id               String         @id @default(dbgenerated("(gen_random_uuid())::text"))
+  title            String
+  description      String?
+  courseId         String
+  durationMinutes  Int
+  totalMarks       Int            @default(0)
+  status           QuizStatus     @default(DRAFT)
+  startTime        DateTime?
+  endTime          DateTime?
+  resultsPublished Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  quizQuestions    QuizQuestion[]
+  course           Course         @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  results          Result[]
+  studentQuizzes   StudentQuiz[]
+
+  @@index([courseId])
+  @@index([status])
+  @@map("quizzes")
+}
+
+model Question {
+  id             String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  facultyId      String
+  courseId       String
+  text           String
+  imageUrl       String?
+  marks          Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  options        Option[]
+  course         Course          @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  faculty        Faculty         @relation(fields: [facultyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quizQuestions  QuizQuestion[]
+  studentAnswers StudentAnswer[]
+
+  @@index([facultyId])
+  @@index([courseId])
+  @@map("questions")
+}
+
+model Option {
+  id             String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  questionId     String
+  text           String
+  isCorrect      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  studentAnswers StudentAnswer[]
+
+  @@index([questionId])
+  @@map("options")
+}
+
+model QuizQuestion {
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  quizId     String
+  questionId String
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([quizId, questionId])
+  @@index([quizId])
+  @@index([questionId])
+  @@map("quiz_questions")
+}
+
+model StudentQuiz {
+  id            String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  studentId     String
+  quizId        String
+  status        StudentQuizStatus @default(NOT_STARTED)
+  questionOrder Json
+  startedAt     DateTime?
+  submittedAt   DateTime?
+  autoSubmitted Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  result        Result?
+  answers       StudentAnswer[]
+  quiz          Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student       Student           @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([studentId, quizId])
+  @@index([studentId])
+  @@index([quizId])
+  @@map("student_quizzes")
+}
+
+model StudentAnswer {
+  id               String       @id @default(dbgenerated("(gen_random_uuid())::text"))
+  studentQuizId    String
+  questionId       String
+  selectedOptionId String?
+  optionOrder      Json
+  status           AnswerStatus @default(SKIPPED)
+  marksAwarded     Int          @default(0)
+  answeredAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  question         Question     @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  selectedOption   Option?      @relation(fields: [selectedOptionId], references: [id], onUpdate: NoAction)
+  studentQuiz      StudentQuiz  @relation(fields: [studentQuizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([studentQuizId, questionId])
+  @@index([studentQuizId])
+  @@index([questionId])
+  @@map("student_answers")
+}
+
+model Result {
+  id            String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  studentQuizId String      @unique
+  studentId     String
+  quizId        String
+  totalMarks    Int
+  obtainedMarks Int
+  correctCount  Int
+  wrongCount    Int
+  skippedCount  Int
+  published     Boolean     @default(false)
+  publishedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  quiz          Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  studentQuiz   StudentQuiz @relation(fields: [studentQuizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([studentId])
+  @@index([quizId])
+  @@index([published])
+  @@map("results")
+}
+
+enum QuizStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum StudentQuizStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+}
+
+enum AnswerStatus {
+  CORRECT
+  WRONG
+  SKIPPED
+}
