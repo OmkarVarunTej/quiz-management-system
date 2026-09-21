@@ -111,4 +111,92 @@ export const questionService = {
       include: { options: true },
     });
   },
+
+  async parsePdf(fileBuffer: Buffer) {
+    const { parsePdfQuestions } = await import("../utils/pdfParser.util");
+    return parsePdfQuestions(fileBuffer);
+  },
+
+  async importBatch(
+    facultyId: string,
+    courseId: string,
+    questions: { text: string; marks: number; options: OptionInput[] }[]
+  ) {
+    await this.assertCourseOwnership(courseId, facultyId);
+
+    const questionRecords: {
+      id: string;
+      facultyId: string;
+      courseId: string;
+      text: string;
+      marks: number;
+    }[] = [];
+
+    const optionRecords: {
+      id: string;
+      questionId: string;
+      text: string;
+      isCorrect: boolean;
+    }[] = [];
+
+    const questionIds: string[] = [];
+
+    for (const q of questions) {
+      const questionId = randomUUID();
+      questionIds.push(questionId);
+
+      questionRecords.push({
+        id: questionId,
+        facultyId,
+        courseId,
+        text: q.text,
+        marks: q.marks || 1,
+      });
+
+      for (const opt of q.options) {
+        optionRecords.push({
+          id: randomUUID(),
+          questionId,
+          text: opt.text,
+          isCorrect: opt.isCorrect ?? false,
+        });
+      }
+    }
+
+    return prisma.$transaction(
+      async (tx) => {
+        // Bulk insert questions
+        await tx.question.createMany({
+          data: questionRecords,
+        });
+
+        // Bulk insert options referencing the created questions
+        await tx.option.createMany({
+          data: optionRecords,
+        });
+
+        // Fetch inserted questions with their options to return full records
+        const createdQuestions = await tx.question.findMany({
+          where: { id: { in: questionIds } },
+          include: { options: true },
+        });
+
+        // Maintain original questions order
+        const questionMap = new Map(createdQuestions.map((q) => [q.id, q]));
+        const orderedQuestions = questionIds
+          .map((id) => questionMap.get(id))
+          .filter(Boolean);
+
+        return {
+          count: orderedQuestions.length,
+          questions: orderedQuestions,
+        };
+      },
+      {
+        timeout: 30000,
+        maxWait: 10000,
+      }
+    );
+  },
 };
+

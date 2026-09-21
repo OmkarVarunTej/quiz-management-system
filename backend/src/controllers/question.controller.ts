@@ -38,4 +38,30 @@ export const questionController = {
     const question = await questionService.uploadImage(req.params.id, req.user!.id, req.file);
     return ApiResponse.success(res, HttpStatus.OK, "Image uploaded successfully", question);
   }),
+
+  previewPdfImport: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.file) throw ApiError.badRequest("No PDF file provided");
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      throw ApiError.badRequest("Uploaded PDF file is empty");
+    }
+    const result = await questionService.parsePdf(req.file.buffer);
+    return ApiResponse.success(
+      res,
+      HttpStatus.OK,
+      `Extracted ${result.totalQuestions} question(s) (${result.validQuestionsCount} valid)`,
+      result
+    );
+  }),
+
+  confirmPdfImport: asyncHandler(async (req: Request, res: Response) => {
+    const { courseId, questions } = req.body;
+    const result = await questionService.importBatch(req.user!.id, courseId, questions);
+    return ApiResponse.success(
+      res,
+      HttpStatus.CREATED,
+      `Successfully imported ${result.count} question(s)`,
+      result
+    );
+  }),
 };
+

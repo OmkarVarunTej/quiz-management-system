@@ -49,3 +49,21 @@ export function useUploadQuestionImage(id: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["questions"] }),
   });
 }
+
+export function usePreviewPdfImport() {
+  return useMutation({
+    mutationFn: (file: File) => questionService.previewPdfImport(file),
+  });
+}
+
+export function useConfirmPdfImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      courseId: string;
+      questions: { text: string; marks: number; options: { text: string; isCorrect: boolean }[] }[];
+    }) => questionService.confirmPdfImport(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["questions"] }),
+  });
+}
+

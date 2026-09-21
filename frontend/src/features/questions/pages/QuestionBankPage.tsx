@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, HelpCircle, Pencil, Trash2, ImageUp, ImageIcon } from "lucide-react";
+import { Plus, HelpCircle, Pencil, Trash2, ImageUp, ImageIcon, FileUp } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SearchBar } from "@/components/common/SearchBar";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -16,7 +16,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/context/ToastContext";
 import { QuestionFormDialog } from "../components/QuestionFormDialog";
 import { QuestionImageDialog } from "../components/QuestionImageDialog";
+import { ImportPdfDialog } from "../components/ImportPdfDialog";
 import { Question } from "@/types";
+
 
 export function QuestionBankPage() {
   const { data: courses } = useCourses();
@@ -25,6 +27,7 @@ export function QuestionBankPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
   const [formOpen, setFormOpen] = useState(false);
+  const [importPdfOpen, setImportPdfOpen] = useState(false);
   const [editing, setEditing] = useState<Question | null>(null);
   const [imageTarget, setImageTarget] = useState<Question | null>(null);
   const [deleting, setDeleting] = useState<Question | null>(null);
@@ -54,17 +57,28 @@ export function QuestionBankPage() {
         title="Question Bank"
         description="Create and manage reusable quiz questions for your courses."
         action={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-            disabled={!courses?.length}
-          >
-            <Plus className="h-4 w-4" /> Add Question
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setImportPdfOpen(true)}
+              disabled={!courses?.length}
+              className="gap-1.5"
+            >
+              <FileUp className="h-4 w-4" /> Import from PDF
+            </Button>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+              disabled={!courses?.length}
+            >
+              <Plus className="h-4 w-4" /> Add Question
+            </Button>
+          </div>
         }
       />
+
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchBar value={search} onChange={setSearch} placeholder="Search questions..." className="max-w-sm" />
@@ -164,7 +178,13 @@ export function QuestionBankPage() {
         question={editing}
         defaultCourseId={courseFilter !== "all" ? courseFilter : undefined}
       />
+      <ImportPdfDialog
+        open={importPdfOpen}
+        onOpenChange={setImportPdfOpen}
+        defaultCourseId={courseFilter !== "all" ? courseFilter : undefined}
+      />
       <QuestionImageDialog open={!!imageTarget} onOpenChange={(o) => !o && setImageTarget(null)} question={imageTarget} />
+
       <ConfirmDialog
         open={!!deleting}
         onOpenChange={(o) => !o && setDeleting(null)}

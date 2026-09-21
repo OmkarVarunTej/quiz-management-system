@@ -48,3 +48,30 @@ export const listQuestionsQuerySchema = {
     courseId: z.string().uuid().optional(),
   }),
 };
+
+export const confirmPdfImportSchema = {
+  body: z.object({
+    courseId: z.string().uuid(),
+    questions: z
+      .array(
+        z.object({
+          text: z.string().min(3, "Question text must be at least 3 characters").max(2000),
+          marks: z.coerce.number().int().min(1).max(100).default(1),
+          options: z
+            .array(
+              z.object({
+                text: z.string().min(1, "Option text cannot be empty").max(500),
+                isCorrect: z.boolean(),
+              })
+            )
+            .min(2, "At least 2 options are required")
+            .max(8, "A maximum of 8 options is allowed")
+            .refine((opts) => opts.some((o) => o.isCorrect), {
+              message: "At least one option must be marked correct",
+            }),
+        })
+      )
+      .min(1, "At least one valid question is required for import"),
+  }),
+};
+
