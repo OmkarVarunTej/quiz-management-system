@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { LayoutDashboard, BookOpen, HelpCircle, ClipboardList, GraduationCap } from "lucide-react";
+import { LayoutDashboard, BookOpen, HelpCircle, ClipboardList, BarChart3, GraduationCap } from "lucide-react";
 import { Sidebar, NavItem } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 
@@ -9,6 +9,7 @@ const navItems: NavItem[] = [
   { label: "Courses", to: "/faculty/courses", icon: BookOpen },
   { label: "Question Bank", to: "/faculty/questions", icon: HelpCircle },
   { label: "Quizzes", to: "/faculty/quizzes", icon: ClipboardList },
+  { label: "Analytics", to: "/faculty/analytics", icon: BarChart3 },
 ];
 
 export function FacultyLayout() {

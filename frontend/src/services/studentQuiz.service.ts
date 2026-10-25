@@ -21,6 +21,10 @@ export const studentQuizService = {
     });
     return data.data;
   },
+  async recordTime(quizId: string, entries: { questionId: string; seconds: number }[]) {
+    const { data } = await api.post<ApiSuccess<null>>(`/student-quizzes/${quizId}/time`, { entries });
+    return data.data;
+  },
   async submit(quizId: string, autoSubmitted = false) {
     const { data } = await api.post<ApiSuccess<unknown>>(`/student-quizzes/${quizId}/submit`, {
       autoSubmitted,

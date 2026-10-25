@@ -154,6 +154,30 @@ export const studentQuizService = {
     });
   },
 
+  /** Adds seconds spent on one or more questions to the student's running totals for this attempt. */
+  async recordTime(quizId: string, studentId: string, entries: { questionId: string; seconds: number }[]) {
+    const studentQuiz = await prisma.studentQuiz.findUnique({
+      where: { studentId_quizId: { studentId, quizId } },
+      include: { quiz: { select: { durationMinutes: true } } },
+    });
+    if (!studentQuiz) throw ApiError.badRequest(Messages.QUIZ.NOT_STARTED_YET);
+    if (studentQuiz.status === StudentQuizStatus.SUBMITTED || studentQuiz.status === StudentQuizStatus.AUTO_SUBMITTED) {
+      throw ApiError.badRequest(Messages.QUIZ.ALREADY_SUBMITTED);
+    }
+
+    // One chunk of time on a question can never be longer than the whole quiz.
+    const maxSeconds = studentQuiz.quiz.durationMinutes * 60;
+
+    await prisma.$transaction(
+      entries.map((e) =>
+        prisma.studentAnswer.updateMany({
+          where: { studentQuizId: studentQuiz.id, questionId: e.questionId },
+          data: { timeSpentSeconds: { increment: Math.min(e.seconds, maxSeconds) } },
+        })
+      )
+    );
+  },
+
   /** Evaluates all answers, creates the Result row, and marks the attempt submitted. */
   async submit(quizId: string, studentId: string, autoSubmitted: boolean) {
     const studentQuiz = await prisma.studentQuiz.findUnique({

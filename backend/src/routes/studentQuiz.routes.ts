@@ -7,6 +7,7 @@ import { Role } from "../constants/roles";
 import {
   quizIdParamSchema,
   saveAnswerSchema,
+  recordTimeSchema,
   submitQuizSchema,
 } from "../validators/studentQuiz.validator";
 
@@ -18,6 +19,7 @@ router.get("/available", studentQuizController.listAvailable);
 router.post("/:quizId/start", validate(quizIdParamSchema), studentQuizController.start);
 router.get("/:quizId/session", validate(quizIdParamSchema), studentQuizController.getSession);
 router.patch("/:quizId/answer", validate(saveAnswerSchema), studentQuizController.saveAnswer);
+router.post("/:quizId/time", validate(recordTimeSchema), studentQuizController.recordTime);
 router.post("/:quizId/submit", validate(submitQuizSchema), studentQuizController.submit);
 
 export default router;

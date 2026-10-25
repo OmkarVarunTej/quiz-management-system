@@ -5,6 +5,7 @@ import questionRoutes from "./question.routes";
 import quizRoutes from "./quiz.routes";
 import studentQuizRoutes from "./studentQuiz.routes";
 import resultRoutes from "./result.routes";
+import analyticsRoutes from "./analytics.routes";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/questions", questionRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/student-quizzes", studentQuizRoutes);
 router.use("/results", resultRoutes);
+router.use("/analytics", analyticsRoutes);
 
 export default router;
