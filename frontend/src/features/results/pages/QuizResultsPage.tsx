@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { Send, ArrowUpDown, Award } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { Send, ArrowUpDown, Award, BarChart3 } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SearchBar } from "@/components/common/SearchBar";
@@ -48,9 +48,16 @@ export function QuizResultsPage() {
         title="Results"
         description={quiz ? `${quiz.title} · Total marks: ${quiz.totalMarks}` : undefined}
         action={
-          <Button onClick={() => setPublishConfirm(true)} disabled={!results?.length || allPublished}>
-            <Send className="h-4 w-4" /> {allPublished ? "Results published" : "Publish results"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to={`/faculty/analytics?quizId=${id}`}>
+                <BarChart3 className="h-4 w-4" /> View analytics
+              </Link>
+            </Button>
+            <Button onClick={() => setPublishConfirm(true)} disabled={!results?.length || allPublished}>
+              <Send className="h-4 w-4" /> {allPublished ? "Results published" : "Publish results"}
+            </Button>
+          </div>
         }
       />
 

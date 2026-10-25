@@ -16,6 +16,7 @@ export const ROUTES = {
   FACULTY_QUIZ_DETAIL: "/faculty/quizzes/:id",
   FACULTY_QUIZ_CREATE: "/faculty/quizzes/new",
   FACULTY_QUIZ_RESULTS: "/faculty/quizzes/:id/results",
+  FACULTY_ANALYTICS: "/faculty/analytics",
 
   STUDENT_DASHBOARD: "/student",
   STUDENT_QUIZZES: "/student/quizzes",

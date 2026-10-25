@@ -129,6 +129,37 @@ export interface ResultDetail {
   answers: ResultDetailAnswer[];
 }
 
+export interface QuizAnalyticsQuestion {
+  questionId: string;
+  number: number;
+  text: string;
+  marks: number;
+  attemptedBy: number;
+  avgSeconds: number;
+  minSeconds: number;
+  maxSeconds: number;
+}
+
+export interface QuizAnalyticsStudent {
+  studentQuizId: string;
+  student: { id: string; name: string; regNo: string };
+  status: StudentQuizStatus;
+  autoSubmitted: boolean;
+  startedAt: string | null;
+  submittedAt: string | null;
+  totalSeconds: number;
+  obtainedMarks: number;
+  totalMarks: number;
+  questionTimes: { questionId: string; number: number; seconds: number; status: AnswerStatus }[];
+}
+
+export interface QuizAnalytics {
+  quiz: { id: string; title: string; durationMinutes: number; totalMarks: number; questionCount: number };
+  summary: { attempts: number; avgTotalSeconds: number; fastestSeconds: number; slowestSeconds: number };
+  questions: QuizAnalyticsQuestion[];
+  students: QuizAnalyticsStudent[];
+}
+
 export interface ApiSuccess<T> {
   success: true;
   message: string;

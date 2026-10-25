@@ -32,6 +32,12 @@ export const studentQuizController = {
     return ApiResponse.success(res, HttpStatus.OK, "Answer saved", answer);
   }),
 
+  recordTime: asyncHandler(async (req: Request, res: Response) => {
+    const { entries } = req.body;
+    await studentQuizService.recordTime(req.params.quizId, req.user!.id, entries);
+    return ApiResponse.success(res, HttpStatus.OK, "Time recorded", null);
+  }),
+
   submit: asyncHandler(async (req: Request, res: Response) => {
     const { autoSubmitted } = req.body;
     const outcome = await studentQuizService.submit(req.params.quizId, req.user!.id, !!autoSubmitted);

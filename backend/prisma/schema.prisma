@@ -156,6 +156,7 @@ model StudentAnswer {
   optionOrder      Json
   status           AnswerStatus @default(SKIPPED)
   marksAwarded     Int          @default(0)
+  timeSpentSeconds Int          @default(0)
   answeredAt       DateTime?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt

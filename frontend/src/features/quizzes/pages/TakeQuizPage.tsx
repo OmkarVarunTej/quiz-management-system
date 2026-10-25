@@ -7,6 +7,7 @@ import { PageSpinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/common/ErrorState";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useStartQuiz, useQuizSession, useSaveAnswer, useSubmitQuiz } from "@/hooks/useStudentQuiz";
+import { useQuestionTimeTracker } from "@/hooks/useQuestionTimeTracker";
 import { useToast } from "@/context/ToastContext";
 import { QuizTimer } from "../components/QuizTimer";
 import { QuestionPalette } from "../components/QuestionPalette";
@@ -41,6 +42,12 @@ export function TakeQuizPage() {
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const hasSubmittedRef = useRef(false);
 
+  // Records how long the student spends on each question (shown to faculty in Analytics).
+  const { flush: flushQuestionTime, stop: stopQuestionTime } = useQuestionTimeTracker(
+    quizId,
+    session?.questions[currentIndex]?.id
+  );
+
   useEffect(() => {
     if (session) {
       const initial: Record<string, string | null> = {};
@@ -67,7 +74,9 @@ export function TakeQuizPage() {
       if (hasSubmittedRef.current) return;
       hasSubmittedRef.current = true;
       try {
+        await flushQuestionTime(); // save time spent on the current question before submitting
         await submitQuiz.mutateAsync(autoSubmitted);
+        stopQuestionTime();
         toast({
           title: autoSubmitted ? "Time's up — quiz auto-submitted" : "Quiz submitted successfully",
           variant: autoSubmitted ? "info" : "success",
@@ -78,7 +87,7 @@ export function TakeQuizPage() {
         toast({ title: "Could not submit quiz", description: (err as Error).message, variant: "error" });
       }
     },
-    [submitQuiz, toast, navigate]
+    [submitQuiz, toast, navigate, flushQuestionTime, stopQuestionTime]
   );
 
   const handleSelect = (questionId: string, optionId: string) => {

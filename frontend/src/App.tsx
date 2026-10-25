@@ -20,6 +20,7 @@ import { QuizzesPage } from "@/features/quizzes/pages/QuizzesPage";
 import { CreateQuizPage } from "@/features/quizzes/pages/CreateQuizPage";
 import { QuizDetailPage } from "@/features/quizzes/pages/QuizDetailPage";
 import { QuizResultsPage } from "@/features/results/pages/QuizResultsPage";
+import { AnalyticsPage } from "@/features/analytics/pages/AnalyticsPage";
 
 import { StudentDashboardPage } from "@/features/students/pages/StudentDashboardPage";
 import { AvailableQuizzesPage } from "@/features/quizzes/pages/AvailableQuizzesPage";
@@ -71,6 +72,7 @@ export default function App() {
                   <Route path="/faculty/quizzes/new" element={<CreateQuizPage />} />
                   <Route path="/faculty/quizzes/:id" element={<QuizDetailPage />} />
                   <Route path="/faculty/quizzes/:id/results" element={<QuizResultsPage />} />
+                  <Route path="/faculty/analytics" element={<AnalyticsPage />} />
                 </Route>
               </Route>
 
