@@ -9,6 +9,7 @@ import {
   saveAnswerSchema,
   recordTimeSchema,
   submitQuizSchema,
+  tabSwitchSchema,
 } from "../validators/studentQuiz.validator";
 
 const router = Router();
@@ -20,6 +21,7 @@ router.post("/:quizId/start", validate(quizIdParamSchema), studentQuizController
 router.get("/:quizId/session", validate(quizIdParamSchema), studentQuizController.getSession);
 router.patch("/:quizId/answer", validate(saveAnswerSchema), studentQuizController.saveAnswer);
 router.post("/:quizId/time", validate(recordTimeSchema), studentQuizController.recordTime);
+router.post("/:quizId/tab-switch", validate(tabSwitchSchema), studentQuizController.recordTabSwitch);
 router.post("/:quizId/submit", validate(submitQuizSchema), studentQuizController.submit);
 
 export default router;

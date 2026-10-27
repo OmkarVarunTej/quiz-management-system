@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma";
 import { ApiError } from "../utils/ApiError";
 import { Messages } from "../constants/messages";
 import { seededShuffle } from "../utils/shuffle";
+import { MAX_TAB_SWITCH_WARNINGS } from "../constants/quiz";
 import { QuizStatus, StudentQuizStatus, AnswerStatus } from "@prisma/client";
 
 export const studentQuizService = {
@@ -119,6 +120,8 @@ export const studentQuizService = {
       durationMinutes: quiz.durationMinutes,
       remainingSeconds,
       status: studentQuiz.status,
+      tabSwitchCount: studentQuiz.tabSwitchCount,
+      maxTabSwitchWarnings: MAX_TAB_SWITCH_WARNINGS,
       questions,
     };
   },
@@ -178,8 +181,61 @@ export const studentQuizService = {
     );
   },
 
+  /**
+   * Records that the student left the quiz tab. The first MAX_TAB_SWITCH_WARNINGS
+   * switches are warnings; the next one auto-submits the attempt. The count lives on
+   * the server so refreshing the page does not reset it.
+   */
+  async recordTabSwitch(quizId: string, studentId: string, questionId?: string) {
+    const studentQuiz = await prisma.studentQuiz.findUnique({
+      where: { studentId_quizId: { studentId, quizId } },
+    });
+    if (!studentQuiz) throw ApiError.badRequest(Messages.QUIZ.NOT_STARTED_YET);
+
+    const alreadySubmitted =
+      studentQuiz.status === StudentQuizStatus.SUBMITTED || studentQuiz.status === StudentQuizStatus.AUTO_SUBMITTED;
+    if (alreadySubmitted) {
+      return {
+        tabSwitchCount: studentQuiz.tabSwitchCount,
+        maxTabSwitchWarnings: MAX_TAB_SWITCH_WARNINGS,
+        warningsLeft: 0,
+        terminated: true,
+      };
+    }
+
+    const [, updated] = await prisma.$transaction([
+      prisma.tabSwitchEvent.create({ data: { studentQuizId: studentQuiz.id, questionId } }),
+      prisma.studentQuiz.update({
+        where: { id: studentQuiz.id },
+        data: { tabSwitchCount: { increment: 1 } },
+      }),
+    ]);
+
+    const terminated = updated.tabSwitchCount > MAX_TAB_SWITCH_WARNINGS;
+    if (terminated) {
+      try {
+        await this.submit(quizId, studentId, true, { terminatedForTabSwitching: true });
+      } catch (err) {
+        // A parallel request may have submitted it already - that's fine.
+        if (!(err instanceof ApiError) || err.message !== Messages.QUIZ.ALREADY_SUBMITTED) throw err;
+      }
+    }
+
+    return {
+      tabSwitchCount: updated.tabSwitchCount,
+      maxTabSwitchWarnings: MAX_TAB_SWITCH_WARNINGS,
+      warningsLeft: Math.max(MAX_TAB_SWITCH_WARNINGS - updated.tabSwitchCount, 0),
+      terminated,
+    };
+  },
+
   /** Evaluates all answers, creates the Result row, and marks the attempt submitted. */
-  async submit(quizId: string, studentId: string, autoSubmitted: boolean) {
+  async submit(
+    quizId: string,
+    studentId: string,
+    autoSubmitted: boolean,
+    options: { terminatedForTabSwitching?: boolean } = {}
+  ) {
     const studentQuiz = await prisma.studentQuiz.findUnique({
       where: { studentId_quizId: { studentId, quizId } },
       include: { answers: { include: { question: true, selectedOption: true } } },
@@ -223,14 +279,19 @@ export const studentQuizService = {
         )
       );
 
-      const updatedStudentQuiz = await tx.studentQuiz.update({
-        where: { id: studentQuiz.id },
+      // Only flip an attempt that is still in progress, so two submits racing each other
+      // (e.g. timer expiry and a tab-switch termination) can't both create a result.
+      const { count } = await tx.studentQuiz.updateMany({
+        where: { id: studentQuiz.id, status: StudentQuizStatus.IN_PROGRESS },
         data: {
           status: autoSubmitted ? StudentQuizStatus.AUTO_SUBMITTED : StudentQuizStatus.SUBMITTED,
           submittedAt: new Date(),
           autoSubmitted,
+          terminatedForTabSwitching: !!options.terminatedForTabSwitching,
         },
       });
+      if (count === 0) throw ApiError.badRequest(Messages.QUIZ.ALREADY_SUBMITTED);
+      const updatedStudentQuiz = await tx.studentQuiz.findUniqueOrThrow({ where: { id: studentQuiz.id } });
 
       const result = await tx.result.create({
         data: {

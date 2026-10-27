@@ -90,7 +90,25 @@ export interface QuizSession {
   durationMinutes: number;
   remainingSeconds: number;
   status: StudentQuizStatus;
+  /** Times the student has already left the quiz tab during this attempt. */
+  tabSwitchCount: number;
+  /** Warnings allowed; the switch after the last warning auto-submits the quiz. */
+  maxTabSwitchWarnings: number;
   questions: SessionQuestion[];
+}
+
+export interface TabSwitchOutcome {
+  tabSwitchCount: number;
+  maxTabSwitchWarnings: number;
+  warningsLeft: number;
+  terminated: boolean;
+}
+
+export interface TabSwitchEvent {
+  id: string;
+  occurredAt: string;
+  /** Question number in the faculty's order, or null if unknown. */
+  questionNumber: number | null;
 }
 
 export interface ResultSummary {
@@ -107,6 +125,11 @@ export interface ResultSummary {
   publishedAt: string | null;
   student?: { id: string; name: string; regNo: string; email: string };
   quiz?: { id: string; title: string; totalMarks: number };
+  // Present on the faculty results list.
+  autoSubmitted?: boolean;
+  tabSwitchCount?: number;
+  terminatedForTabSwitching?: boolean;
+  tabSwitchEvents?: TabSwitchEvent[];
 }
 
 export interface ResultDetailAnswer {
@@ -145,6 +168,8 @@ export interface QuizAnalyticsStudent {
   student: { id: string; name: string; regNo: string };
   status: StudentQuizStatus;
   autoSubmitted: boolean;
+  tabSwitchCount: number;
+  terminatedForTabSwitching: boolean;
   startedAt: string | null;
   submittedAt: string | null;
   totalSeconds: number;

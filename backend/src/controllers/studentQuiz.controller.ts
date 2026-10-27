@@ -38,6 +38,12 @@ export const studentQuizController = {
     return ApiResponse.success(res, HttpStatus.OK, "Time recorded", null);
   }),
 
+  recordTabSwitch: asyncHandler(async (req: Request, res: Response) => {
+    const { questionId } = req.body;
+    const outcome = await studentQuizService.recordTabSwitch(req.params.quizId, req.user!.id, questionId);
+    return ApiResponse.success(res, HttpStatus.OK, "Tab switch recorded", outcome);
+  }),
+
   submit: asyncHandler(async (req: Request, res: Response) => {
     const { autoSubmitted } = req.body;
     const outcome = await studentQuizService.submit(req.params.quizId, req.user!.id, !!autoSubmitted);

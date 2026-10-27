@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, ChevronLeft, ChevronRight, BadgeCheck, CloudUpload, Flag } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, BadgeCheck, CloudUpload, Flag, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageSpinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/common/ErrorState";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useStartQuiz, useQuizSession, useSaveAnswer, useSubmitQuiz } from "@/hooks/useStudentQuiz";
 import { useQuestionTimeTracker } from "@/hooks/useQuestionTimeTracker";
+import { useTabSwitchGuard } from "@/hooks/useTabSwitchGuard";
+import { studentQuizService } from "@/services/studentQuiz.service";
 import { useToast } from "@/context/ToastContext";
 import { QuizTimer } from "../components/QuizTimer";
 import { QuestionPalette } from "../components/QuestionPalette";
@@ -17,6 +21,7 @@ export function TakeQuizPage() {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const startQuiz = useStartQuiz();
   const [started, setStarted] = useState(false);
@@ -42,11 +47,20 @@ export function TakeQuizPage() {
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const hasSubmittedRef = useRef(false);
 
+  // Tab-switch tracking: the count comes from the server so a page refresh doesn't reset it.
+  const [tabSwitchCount, setTabSwitchCount] = useState<number | null>(null);
+  const [tabWarningOpen, setTabWarningOpen] = useState(false);
+  const [terminated, setTerminated] = useState(false);
+
   // Records how long the student spends on each question (shown to faculty in Analytics).
   const { flush: flushQuestionTime, stop: stopQuestionTime } = useQuestionTimeTracker(
     quizId,
     session?.questions[currentIndex]?.id
   );
+
+  useEffect(() => {
+    if (session) setTabSwitchCount((prev) => prev ?? session.tabSwitchCount);
+  }, [session]);
 
   useEffect(() => {
     if (session) {
@@ -90,6 +104,37 @@ export function TakeQuizPage() {
     [submitQuiz, toast, navigate, flushQuestionTime, stopQuestionTime]
   );
 
+  const maxTabWarnings = session?.maxTabSwitchWarnings ?? 3;
+  const currentQuestionId = session?.questions[currentIndex]?.id;
+
+  // Each time the student leaves the quiz tab/window: record it on the server.
+  // The first few are warnings; after that the server submits the quiz.
+  const handleTabLeave = async () => {
+    if (!quizId || hasSubmittedRef.current) return;
+    await flushQuestionTime(); // bank time on this question in case the quiz gets submitted now
+    try {
+      const outcome = await studentQuizService.recordTabSwitch(quizId, currentQuestionId);
+      setTabSwitchCount(outcome.tabSwitchCount);
+      if (outcome.terminated) {
+        hasSubmittedRef.current = true;
+        stopQuestionTime();
+        setTabWarningOpen(false);
+        setSubmitConfirm(false);
+        setTerminated(true);
+        queryClient.invalidateQueries({ queryKey: ["student-quizzes", "available"] });
+        queryClient.invalidateQueries({ queryKey: ["results"] });
+      } else {
+        setTabWarningOpen(true);
+      }
+    } catch {
+      // Couldn't reach the server - still warn the student.
+      setTabSwitchCount((c) => (c ?? 0) + 1);
+      setTabWarningOpen(true);
+    }
+  };
+
+  useTabSwitchGuard(started && !!session && !terminated, handleTabLeave);
+
   const handleSelect = (questionId: string, optionId: string) => {
     const next = localAnswers[questionId] === optionId ? null : optionId;
     setLocalAnswers((prev) => ({ ...prev, [questionId]: next }));
@@ -104,6 +149,26 @@ export function TakeQuizPage() {
   };
 
   const answeredCount = useMemo(() => Object.values(localAnswers).filter(Boolean).length, [localAnswers]);
+
+  if (terminated) {
+    return (
+      <div className="mx-auto max-w-lg py-16">
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
+            <ShieldAlert className="h-10 w-10 text-destructive" />
+            <h1 className="text-lg font-semibold text-foreground">Quiz submitted automatically</h1>
+            <p className="text-sm text-muted-foreground">
+              You left the quiz screen more than {maxTabWarnings} times, so your quiz was submitted with the answers you
+              had saved. Your faculty can see how many times you switched tabs.
+            </p>
+            <Button className="mt-2" onClick={() => navigate("/student/quizzes", { replace: true })}>
+              Back to quizzes
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (startError) {
     return (
@@ -129,6 +194,16 @@ export function TakeQuizPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <span
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+              tabSwitchCount ? "bg-warning/10 text-warning-foreground" : "bg-secondary text-muted-foreground"
+            )}
+            title={`Leaving this tab is counted. After ${maxTabWarnings} warnings the quiz is submitted automatically.`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Tab switches: {tabSwitchCount ?? 0}/{maxTabWarnings}
+          </span>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {saveStatus === "saving" ? (
               <>
@@ -238,6 +313,26 @@ export function TakeQuizPage() {
           </Button>
         </div>
       </div>
+
+      <Dialog open={tabWarningOpen} onOpenChange={setTabWarningOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning-foreground" />
+              Warning {Math.min(tabSwitchCount ?? 1, maxTabWarnings)} of {maxTabWarnings}: you left the quiz
+            </DialogTitle>
+            <DialogDescription>
+              Switching tabs, windows or apps during the quiz is not allowed and is reported to your faculty.{" "}
+              {(tabSwitchCount ?? 0) >= maxTabWarnings
+                ? "This was your last warning. If you leave the quiz again, it will be submitted automatically."
+                : `You have ${maxTabWarnings - (tabSwitchCount ?? 0)} warning(s) left before your quiz is submitted automatically.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setTabWarningOpen(false)}>Return to quiz</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={submitConfirm}
