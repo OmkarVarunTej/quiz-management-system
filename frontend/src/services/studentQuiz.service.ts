@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { ApiSuccess, Quiz, QuizSession } from "@/types";
+import { ApiSuccess, Quiz, QuizSession, TabSwitchOutcome } from "@/types";
 
 export const studentQuizService = {
   async listAvailable() {
@@ -23,6 +23,12 @@ export const studentQuizService = {
   },
   async recordTime(quizId: string, entries: { questionId: string; seconds: number }[]) {
     const { data } = await api.post<ApiSuccess<null>>(`/student-quizzes/${quizId}/time`, { entries });
+    return data.data;
+  },
+  async recordTabSwitch(quizId: string, questionId?: string) {
+    const { data } = await api.post<ApiSuccess<TabSwitchOutcome>>(`/student-quizzes/${quizId}/tab-switch`, {
+      questionId,
+    });
     return data.data;
   },
   async submit(quizId: string, autoSubmitted = false) {

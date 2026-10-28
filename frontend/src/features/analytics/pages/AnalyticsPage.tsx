@@ -170,6 +170,7 @@ export function AnalyticsPage() {
                     <TableHead>Total time</TableHead>
                     <TableHead>Marks</TableHead>
                     <TableHead>Submitted</TableHead>
+                    <TableHead>Tab switches</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -196,15 +197,18 @@ export function AnalyticsPage() {
                             {s.obtainedMarks} / {s.totalMarks}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{formatDateTime(s.submittedAt)}</TableCell>
+                          <TableCell className={s.tabSwitchCount ? "font-semibold text-destructive tabular-nums" : "text-muted-foreground tabular-nums"}>
+                            {s.tabSwitchCount}
+                          </TableCell>
                           <TableCell>
-                            <Badge variant={s.autoSubmitted ? "warning" : "success"}>
-                              {s.autoSubmitted ? "Auto-submitted" : "Submitted"}
+                            <Badge variant={s.terminatedForTabSwitching ? "destructive" : s.autoSubmitted ? "warning" : "success"}>
+                              {s.terminatedForTabSwitching ? "Auto-submitted (tab switching)" : s.autoSubmitted ? "Auto-submitted" : "Submitted"}
                             </Badge>
                           </TableCell>
                         </TableRow>
                         {isOpen && (
                           <TableRow className="bg-secondary/30 hover:bg-secondary/30">
-                            <TableCell colSpan={6}>
+                            <TableCell colSpan={7}>
                               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
                                 {s.questionTimes.map((t) => (
                                   <div

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Send, ArrowUpDown, Award, BarChart3 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { ResultSummary } from "@/types";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SearchBar } from "@/components/common/SearchBar";
@@ -25,6 +27,7 @@ export function QuizResultsPage() {
   const debouncedRegNo = useDebounce(regNo);
   const { data: results, isLoading, isError, refetch } = useResultsForQuiz(id, { regNo: debouncedRegNo || undefined, sort });
   const [publishConfirm, setPublishConfirm] = useState(false);
+  const [tabLogFor, setTabLogFor] = useState<ResultSummary | null>(null);
   const publishResults = usePublishResults();
   const { toast } = useToast();
 
@@ -90,6 +93,7 @@ export function QuizResultsPage() {
                   <TableHead>Correct</TableHead>
                   <TableHead>Wrong</TableHead>
                   <TableHead>Skipped</TableHead>
+                  <TableHead>Tab switches</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -105,6 +109,23 @@ export function QuizResultsPage() {
                     <TableCell className="text-destructive">{r.wrongCount}</TableCell>
                     <TableCell className="text-muted-foreground">{r.skippedCount}</TableCell>
                     <TableCell>
+                      {r.tabSwitchCount ? (
+                        <button
+                          type="button"
+                          onClick={() => setTabLogFor(r)}
+                          className="flex flex-col items-start gap-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          title="See when the student switched tabs"
+                        >
+                          <span className="font-semibold text-destructive underline-offset-2 hover:underline">
+                            {r.tabSwitchCount} {r.tabSwitchCount === 1 ? "time" : "times"}
+                          </span>
+                          {r.terminatedForTabSwitching && <Badge variant="destructive">Auto-submitted</Badge>}
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={r.published ? "success" : "secondary"}>{r.published ? "Published" : "Unpublished"}</Badge>
                     </TableCell>
                   </TableRow>
@@ -114,6 +135,27 @@ export function QuizResultsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!tabLogFor} onOpenChange={(open) => !open && setTabLogFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tab switches · {tabLogFor?.student?.name}</DialogTitle>
+            <DialogDescription>
+              {tabLogFor?.student?.regNo} left the quiz screen {tabLogFor?.tabSwitchCount} time(s).
+              {tabLogFor?.terminatedForTabSwitching && " The quiz was submitted automatically after the warnings ran out."}
+            </DialogDescription>
+          </DialogHeader>
+          <ol className="max-h-72 space-y-2 overflow-y-auto">
+            {tabLogFor?.tabSwitchEvents?.map((e, i) => (
+              <li key={e.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+                <span className="font-medium text-foreground">#{i + 1}</span>
+                <span className="text-muted-foreground">{e.questionNumber ? `On question ${e.questionNumber}` : "—"}</span>
+                <span className="tabular-nums text-muted-foreground">{new Date(e.occurredAt).toLocaleTimeString()}</span>
+              </li>
+            ))}
+          </ol>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={publishConfirm}

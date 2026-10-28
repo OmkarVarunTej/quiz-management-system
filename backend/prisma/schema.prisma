@@ -135,10 +135,15 @@ model StudentQuiz {
   startedAt     DateTime?
   submittedAt   DateTime?
   autoSubmitted Boolean           @default(false)
+  /// How many times the student left the quiz tab/window during this attempt.
+  tabSwitchCount Int              @default(0)
+  /// True when the attempt was force-submitted because the tab-switch limit was exceeded.
+  terminatedForTabSwitching Boolean @default(false)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   result        Result?
   answers       StudentAnswer[]
+  tabSwitchEvents TabSwitchEvent[]
   quiz          Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   student       Student           @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -146,6 +151,18 @@ model StudentQuiz {
   @@index([studentId])
   @@index([quizId])
   @@map("student_quizzes")
+}
+
+/// One row per time a student left the quiz tab, so faculty can see when it happened.
+model TabSwitchEvent {
+  id             String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  studentQuizId  String
+  questionId     String?
+  occurredAt     DateTime    @default(now())
+  studentQuiz    StudentQuiz @relation(fields: [studentQuizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([studentQuizId])
+  @@map("tab_switch_events")
 }
 
 model StudentAnswer {

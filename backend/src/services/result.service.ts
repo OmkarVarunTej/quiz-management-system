@@ -22,14 +22,47 @@ export const resultService = {
   async listForQuizAsFaculty(quizId: string, facultyId: string, regNo?: string, sort: "asc" | "desc" = "asc") {
     await quizService.assertQuizOwnership(quizId, facultyId);
 
-    return prisma.result.findMany({
+    // Number questions the way the faculty arranged them (students see a shuffled order).
+    const quizQuestions = await prisma.quizQuestion.findMany({
+      where: { quizId },
+      orderBy: { order: "asc" },
+      select: { questionId: true },
+    });
+    const questionNumber = new Map(quizQuestions.map((qq, i) => [qq.questionId, i + 1]));
+
+    const results = await prisma.result.findMany({
       where: {
         quizId,
         ...(regNo ? { student: { regNo: { contains: regNo, mode: "insensitive" } } } : {}),
       },
-      include: { student: { select: { id: true, name: true, regNo: true, email: true } } },
+      include: {
+        student: { select: { id: true, name: true, regNo: true, email: true } },
+        studentQuiz: {
+          select: {
+            autoSubmitted: true,
+            tabSwitchCount: true,
+            terminatedForTabSwitching: true,
+            tabSwitchEvents: {
+              select: { id: true, questionId: true, occurredAt: true },
+              orderBy: { occurredAt: "asc" },
+            },
+          },
+        },
+      },
       orderBy: { obtainedMarks: sort },
     });
+
+    return results.map(({ studentQuiz, ...r }) => ({
+      ...r,
+      autoSubmitted: studentQuiz.autoSubmitted,
+      tabSwitchCount: studentQuiz.tabSwitchCount,
+      terminatedForTabSwitching: studentQuiz.terminatedForTabSwitching,
+      tabSwitchEvents: studentQuiz.tabSwitchEvents.map((e) => ({
+        id: e.id,
+        occurredAt: e.occurredAt,
+        questionNumber: e.questionId ? questionNumber.get(e.questionId) ?? null : null,
+      })),
+    }));
   },
 
   /** Student: list own published results. */

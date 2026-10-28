@@ -33,3 +33,10 @@ export const submitQuizSchema = {
     autoSubmitted: z.boolean().default(false),
   }),
 };
+
+export const tabSwitchSchema = {
+  params: z.object({ quizId: z.string().uuid() }),
+  body: z.object({
+    questionId: z.string().uuid().optional(),
+  }),
+};

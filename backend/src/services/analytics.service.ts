@@ -63,6 +63,8 @@ export const analyticsService = {
         student: a.student,
         status: a.status,
         autoSubmitted: a.autoSubmitted,
+        tabSwitchCount: a.tabSwitchCount,
+        terminatedForTabSwitching: a.terminatedForTabSwitching,
         startedAt: a.startedAt,
         submittedAt: a.submittedAt,
         totalSeconds,
