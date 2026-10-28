@@ -9,6 +9,7 @@ import {
   updateCourseSchema,
   idParamSchema,
   enrollStudentSchema,
+  bulkEnrollStudentsSchema,
 } from "../validators/course.validator";
 import { z } from "zod";
 import { validate as v } from "../middlewares/validate.middleware";
@@ -29,6 +30,12 @@ router.post(
   authorize(Role.FACULTY),
   validate(enrollStudentSchema),
   courseController.enrollStudent
+);
+router.post(
+  "/:id/students/bulk",
+  authorize(Role.FACULTY),
+  validate(bulkEnrollStudentsSchema),
+  courseController.bulkEnrollStudents
 );
 router.delete(
   "/:id/students/:studentId",

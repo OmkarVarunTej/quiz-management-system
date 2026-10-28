@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { ApiSuccess, Course, Student } from "@/types";
+import { ApiSuccess, Course, Student, BulkEnrollData } from "@/types";
 
 export const courseService = {
   async list() {
@@ -29,7 +29,15 @@ export const courseService = {
     const { data } = await api.post<ApiSuccess<Student>>(`/courses/${id}/students`, { regNo });
     return data.data;
   },
+  async bulkEnrollStudents(id: string, registrationNumbers: string[], dryRun?: boolean) {
+    const { data } = await api.post<ApiSuccess<BulkEnrollData>>(`/courses/${id}/students/bulk`, {
+      registrationNumbers,
+      dryRun,
+    });
+    return data.data;
+  },
   async unenrollStudent(id: string, studentId: string) {
     await api.delete(`/courses/${id}/students/${studentId}`);
   },
 };
+

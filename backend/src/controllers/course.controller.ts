@@ -41,6 +41,20 @@ export const courseController = {
     return ApiResponse.success(res, HttpStatus.OK, "Student enrolled successfully", student);
   }),
 
+  bulkEnrollStudents: asyncHandler(async (req: Request, res: Response) => {
+    const { registrationNumbers, dryRun } = req.body;
+    const result = await courseService.bulkEnrollStudents(
+      req.params.id,
+      req.user!.id,
+      registrationNumbers,
+      dryRun
+    );
+    const message = dryRun
+      ? "Bulk enrollment preview generated"
+      : `Bulk enrollment processed: ${result.summary.enrolled} enrolled, ${result.summary.alreadyEnrolled} already enrolled, ${result.summary.notFound} not found.`;
+    return ApiResponse.success(res, HttpStatus.OK, message, result);
+  }),
+
   unenrollStudent: asyncHandler(async (req: Request, res: Response) => {
     await courseService.unenrollStudent(req.params.id, req.user!.id, req.params.studentId);
     return ApiResponse.success(res, HttpStatus.OK, "Student unenrolled successfully", null);

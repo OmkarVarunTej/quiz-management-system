@@ -75,3 +75,18 @@ export function useUnenrollStudent(courseId: string) {
     },
   });
 }
+
+export function useBulkEnrollStudents(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ registrationNumbers, dryRun }: { registrationNumbers: string[]; dryRun?: boolean }) =>
+      courseService.bulkEnrollStudents(courseId, registrationNumbers, dryRun),
+    onSuccess: (data) => {
+      if (data?.summary?.enrolled > 0) {
+        qc.invalidateQueries({ queryKey: courseKeys.students(courseId) });
+        qc.invalidateQueries({ queryKey: courseKeys.detail(courseId) });
+      }
+    },
+  });
+}
+

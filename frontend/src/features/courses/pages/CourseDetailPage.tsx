@@ -115,7 +115,7 @@ export function CourseDetailPage() {
         </CardContent>
       </Card>
 
-      {id && <EnrollStudentDialog open={enrollOpen} onOpenChange={setEnrollOpen} courseId={id} />}
+      {id && <EnrollStudentDialog open={enrollOpen} onOpenChange={setEnrollOpen} courseId={id} courseCode={course.code} />}
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}

@@ -62,11 +62,155 @@ export const courseService = {
     const student = await prisma.student.findUnique({ where: { regNo } });
     if (!student) throw ApiError.notFound(Messages.GENERIC.NOT_FOUND("Student"));
 
+    const alreadyEnrolled = await prisma.course.findFirst({
+      where: { id: courseId, students: { some: { id: student.id } } },
+    });
+    if (alreadyEnrolled) {
+      throw ApiError.conflict("Student is already enrolled in this course");
+    }
+
     await prisma.course.update({
       where: { id: courseId },
       data: { students: { connect: { id: student.id } } },
     });
     return student;
+  },
+
+  async bulkEnrollStudents(
+    courseId: string,
+    facultyId: string,
+    rawRegistrationNumbers: string[],
+    dryRun = false
+  ) {
+    await this.assertOwnership(courseId, facultyId);
+
+    const totalSubmitted = rawRegistrationNumbers.length;
+    const invalid: Array<{ regNo: string; reason: string }> = [];
+    const duplicates: Array<{ regNo: string; reason: string }> = [];
+    const uniqueMap = new Map<string, string>(); // upperCaseKey -> originalTrimmed
+
+    for (const raw of rawRegistrationNumbers) {
+      if (typeof raw !== "string") {
+        invalid.push({ regNo: String(raw), reason: "Registration number must be a string" });
+        continue;
+      }
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed.length < 2 || trimmed.length > 50) {
+        invalid.push({
+          regNo: raw,
+          reason: "Registration number must be between 2 and 50 characters",
+        });
+        continue;
+      }
+
+      const upperKey = trimmed.toUpperCase();
+      if (uniqueMap.has(upperKey)) {
+        duplicates.push({
+          regNo: trimmed,
+          reason: "Duplicate registration number in submitted list",
+        });
+      } else {
+        uniqueMap.set(upperKey, trimmed);
+      }
+    }
+
+    const uniqueRegNos = Array.from(uniqueMap.values());
+    const uniqueRegistrationNumbers = uniqueRegNos.length;
+
+    const enrolled: Array<{ id: string; regNo: string; name: string; email: string }> = [];
+    const alreadyEnrolled: Array<{ id: string; regNo: string; name: string; email: string; reason: string }> = [];
+    const notFound: Array<{ regNo: string; reason: string }> = [];
+
+    if (uniqueRegNos.length > 0) {
+      const dbStudents = await prisma.student.findMany({
+        where: {
+          OR: [
+            { regNo: { in: uniqueRegNos } },
+            { regNo: { in: Array.from(uniqueMap.keys()) } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          regNo: true,
+          email: true,
+          courses: {
+            where: { id: courseId },
+            select: { id: true },
+          },
+        },
+      });
+
+      const dbStudentByUpper = new Map<string, (typeof dbStudents)[0]>();
+      for (const s of dbStudents) {
+        dbStudentByUpper.set(s.regNo.toUpperCase(), s);
+      }
+
+      const eligibleToConnect: Array<{ id: string; regNo: string; name: string; email: string }> = [];
+
+      for (const regNo of uniqueRegNos) {
+        const student = dbStudentByUpper.get(regNo.toUpperCase());
+        if (!student) {
+          notFound.push({
+            regNo,
+            reason: "Student not found in system",
+          });
+        } else if (student.courses && student.courses.length > 0) {
+          alreadyEnrolled.push({
+            id: student.id,
+            regNo: student.regNo,
+            name: student.name,
+            email: student.email,
+            reason: "Student is already enrolled in this course",
+          });
+        } else {
+          eligibleToConnect.push({
+            id: student.id,
+            regNo: student.regNo,
+            name: student.name,
+            email: student.email,
+          });
+        }
+      }
+
+      if (!dryRun && eligibleToConnect.length > 0) {
+        await prisma.$transaction(async (tx) => {
+          await tx.course.update({
+            where: { id: courseId },
+            data: {
+              students: {
+                connect: eligibleToConnect.map((s) => ({ id: s.id })),
+              },
+            },
+          });
+        });
+      }
+
+      for (const s of eligibleToConnect) {
+        enrolled.push(s);
+      }
+    }
+
+    const summary = {
+      totalSubmitted,
+      uniqueRegistrationNumbers,
+      enrolled: enrolled.length,
+      alreadyEnrolled: alreadyEnrolled.length,
+      notFound: notFound.length,
+      invalid: invalid.length,
+      duplicatesInFile: duplicates.length,
+    };
+
+    return {
+      summary,
+      results: {
+        enrolled,
+        alreadyEnrolled,
+        notFound,
+        invalid,
+        duplicates,
+      },
+    };
   },
 
   async unenrollStudent(courseId: string, facultyId: string, studentId: string) {

@@ -196,3 +196,33 @@ export interface ApiFailure {
   message: string;
   errors?: unknown;
 }
+
+export interface BulkEnrollItemResult {
+  regNo: string;
+  id?: string;
+  name?: string;
+  email?: string;
+  reason?: string;
+}
+
+export interface BulkEnrollSummary {
+  totalSubmitted: number;
+  uniqueRegistrationNumbers: number;
+  enrolled: number;
+  alreadyEnrolled: number;
+  notFound: number;
+  invalid: number;
+  duplicatesInFile: number;
+}
+
+export interface BulkEnrollData {
+  summary: BulkEnrollSummary;
+  results: {
+    enrolled: BulkEnrollItemResult[];
+    alreadyEnrolled: BulkEnrollItemResult[];
+    notFound: BulkEnrollItemResult[];
+    invalid: BulkEnrollItemResult[];
+    duplicates: BulkEnrollItemResult[];
+  };
+}
+
